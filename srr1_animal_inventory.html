@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SRR1 Animal Inventory</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --fb-blue:#1877f2;--fb-blue-dk:#166fe5;--fb-blue-lt:#e7f3ff;
+  --bg:#f0f2f5;--surface:#fff;--border:#dde1e7;
+  --text:#050505;--muted:#65676b;--hover:#f2f2f2;
+  --green:#42b72a;--green-lt:#e6f4ea;--green-dk:#1a5c0c;
+  --red:#fa3e3e;--red-lt:#fdeaea;
+  --amber:#f7b928;--amber-lt:#fff3cd;
+  --purple:#7c3aed;--purple-lt:#ede9fe;
+  --font:'Inter',sans-serif;--r:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;min-height:100vh}
+
+.nav{background:var(--green-dk);height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;position:sticky;top:0;z-index:300;box-shadow:0 2px 6px rgba(26,92,12,.4);gap:10px}
+.nav-logo{display:flex;align-items:center;gap:9px;color:#fff;white-space:nowrap}
+.nav-ico{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.nav-name{font-size:15px;font-weight:700;line-height:1.2}
+.nav-sub{font-size:10px;color:rgba(255,255,255,.75);font-weight:400}
+.nav-right{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.nav-clock{font-size:11px;color:rgba(255,255,255,.8);white-space:nowrap}
+.sync-pill{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);cursor:pointer;white-space:nowrap}
+
+.tabs{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;display:flex;gap:2px;overflow-x:auto}
+.fb-tab{padding:10px 14px;border:none;background:transparent;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);font-family:var(--font);border-bottom:3px solid transparent;transition:all .1s;white-space:nowrap}
+.fb-tab:hover{color:var(--green-dk);background:var(--green-lt)}
+.fb-tab.active{color:var(--green-dk);border-bottom-color:var(--green)}
+
+.main{max-width:980px;margin:0 auto;padding:14px 12px}
+
+.sched-banner{border-radius:var(--r);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;font-weight:600;border:2px solid var(--border);background:var(--surface)}
+.sched-banner.active{border-color:var(--green);background:var(--green-lt)}
+.sched-banner.warn{border-color:var(--amber);background:var(--amber-lt)}
+.sched-banner.late{border-color:var(--red);background:var(--red-lt)}
+.sched-banner.ok{border-color:var(--green);background:var(--green-lt)}
+.sb-chips{display:flex;gap:5px;flex-wrap:wrap;margin-left:auto}
+.sbc{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.sbc.done{background:var(--green-lt);color:var(--green-dk);border:1px solid var(--green)}
+.sbc.now{background:var(--green-dk);color:#fff}
+.sbc.next{background:var(--hover);color:var(--muted);border:1px solid var(--border)}
+
+/* INVENTORY FORM CARD */
+.form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:12px}
+.fc-head{padding:10px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);background:var(--green-lt)}
+.fc-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;background:var(--green)}
+.fc-title{font-size:14px;font-weight:700;color:var(--green-dk)}
+.fc-sub{font-size:10px;color:var(--muted);margin-top:1px}
+.fc-badge{margin-left:auto;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.fc-badge.done{background:var(--green-lt);color:var(--green-dk);border:1px solid var(--green)}
+.fc-badge.pending{background:var(--amber-lt);color:#856404;border:1px solid var(--amber)}
+.fc-body{padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+
+.field{display:flex;flex-direction:column;gap:3px}
+.flbl{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;line-height:1.3}
+.flbl-my{font-size:9px;color:#9ca3af;font-weight:400;text-transform:none;letter-spacing:0}
+.finput{background:var(--bg);border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;font-size:14px;font-weight:700;font-family:var(--font);color:var(--text);outline:none;transition:border-color .15s;width:100%;text-align:center}
+.finput:focus{border-color:var(--green);background:#fff}
+.finput.text{text-align:left;font-size:13px;font-weight:500}
+.finput[readonly]{opacity:.6;cursor:default;background:var(--hover)}
+.field-row{display:grid;gap:6px}
+.field-row-2{grid-template-columns:1fr 1fr}
+.field-row-3{grid-template-columns:1fr 1fr 1fr}
+.field-row-4{grid-template-columns:1fr 1fr 1fr 1fr}
+.field-row-5{grid-template-columns:repeat(5,1fr)}
+
+.sect-divider{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;padding:5px 0 3px;border-top:1px solid var(--border);margin-top:2px;display:flex;align-items:center;gap:5px}
+
+/* SPECIES TABLE INPUT */
+.species-table{width:100%;border-collapse:collapse;font-size:12px}
+.species-table th{padding:6px 8px;font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--border);text-align:center;white-space:nowrap}
+.species-table th.left{text-align:left}
+.species-table td{padding:4px 5px;border-bottom:1px solid var(--border);vertical-align:middle}
+.species-table tr:last-child td{border-bottom:none}
+.species-table tr:hover td{background:var(--hover)}
+.sp-name{font-weight:700;font-size:12px;color:var(--text)}
+.sp-full{font-size:9px;color:var(--muted);margin-top:1px}
+.sp-inp{background:var(--bg);border:1.5px solid var(--border);border-radius:5px;padding:5px 4px;font-size:13px;font-weight:700;font-family:var(--font);color:var(--text);outline:none;width:100%;text-align:center;min-width:44px}
+.sp-inp:focus{border-color:var(--green);background:#fff}
+.sp-inp.ok-inp:focus{border-color:var(--green)}
+.sp-inp.sm-inp:focus{border-color:var(--amber)}
+.sp-inp.hc-inp:focus{border-color:var(--purple)}
+.sp-inp.free-inp:focus{border-color:var(--fb-blue)}
+.sp-inp.tb-inp:focus{border-color:var(--red)}
+.sp-total{font-weight:800;font-size:13px;color:var(--green-dk);text-align:center;padding:5px 6px}
+
+.status-legend{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.sl-chip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.sl-ok{background:var(--green-lt);color:var(--green-dk);border:1px solid var(--green)}
+.sl-sm{background:var(--amber-lt);color:#856404;border:1px solid var(--amber)}
+.sl-hc{background:var(--purple-lt);color:var(--purple);border:1px solid var(--purple)}
+.sl-free{background:var(--fb-blue-lt);color:var(--fb-blue);border:1px solid var(--fb-blue)}
+.sl-tb{background:var(--red-lt);color:#7f1d1d;border:1px solid var(--red)}
+
+.sub-btn{width:100%;padding:10px;border-radius:var(--r);border:none;font-size:13px;font-weight:700;font-family:var(--font);cursor:pointer;transition:all .15s;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--green);color:#fff}
+.sub-btn:hover{background:#36a420}
+.sub-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* SUMMARY CARD */
+.summary-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:12px}
+.summary-head{padding:10px 14px;background:var(--green-dk);display:flex;align-items:center;gap:8px}
+.summary-title{font-size:14px;font-weight:700;color:#fff}
+
+table.ctbl{width:100%;border-collapse:collapse;font-size:12px}
+.ctbl th{padding:7px 10px;font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;border-bottom:2px solid var(--border);text-align:center}
+.ctbl th.left{text-align:left}
+.ctbl td{padding:7px 10px;border-bottom:1px solid var(--border);text-align:center}
+.ctbl tr:last-child td{border-bottom:none}
+.ctbl tr:hover td{background:var(--hover)}
+.ctbl td.left{text-align:left}
+.v-ok{color:var(--green-dk);font-weight:700}
+.v-sm{color:#856404;font-weight:700}
+.v-hc{color:var(--purple);font-weight:700}
+.v-free{color:var(--fb-blue);font-weight:700}
+.v-tb{color:#7f1d1d;font-weight:700}
+.v-total{color:var(--green-dk);font-weight:800;font-size:14px}
+.v-na{color:var(--border)}
+.sp-lbl{font-weight:700;font-size:12px}
+.sp-lbl-sub{font-size:9px;color:var(--muted);margin-top:1px}
+
+/* PHOTOS */
+.photo-add-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:10px;border:2px dashed var(--border);border-radius:var(--r);font-size:12px;font-weight:600;color:var(--green-dk);cursor:pointer;transition:all .15s;background:var(--green-lt);text-align:center}
+.photo-add-btn:hover{border-color:var(--green);background:#d1fae5}
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px;margin-top:6px}
+.photo-thumb{position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;border:1px solid var(--border)}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-del{position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:10px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;font-family:var(--font)}
+.photo-del:hover{background:var(--red)}
+.photo-count{font-size:10px;color:var(--muted);margin-top:3px;text-align:right}
+
+/* HISTORY */
+.hist-entry{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(10px);padding:10px 18px;border-radius:var(--r);font-size:13px;font-weight:500;opacity:0;transition:all .25s;z-index:999;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.ok{background:var(--green);color:#fff}
+.toast.err{background:var(--red);color:#fff}
+.toast.info{background:var(--text);color:#fff}
+
+@media(max-width:640px){
+  .field-row-3{grid-template-columns:1fr 1fr}
+  .field-row-4{grid-template-columns:1fr 1fr}
+  .field-row-5{grid-template-columns:1fr 1fr}
+  .species-table{font-size:11px}
+  .sp-inp{min-width:36px;font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">
+    <div class="nav-ico">🦎</div>
+    <div>
+      <div class="nav-name">SRR1 Animal Inventory</div>
+      <div class="nav-sub">တိရစ္ဆာန်စာရင်း · SRR1 OLD LOCATION</div>
+    </div>
+  </div>
+  <div class="nav-right">
+    <span class="sync-pill" id="sync-pill" onclick="syncNow()">⬤ …</span>
+    <span class="nav-clock" id="clock"></span>
+  </div>
+</nav>
+
+<div class="tabs">
+  <button type="button" class="fb-tab active" id="tab-form"     onclick="showTab('form')">📋 Inventory Form</button>
+  <button type="button" class="fb-tab"        id="tab-summary"  onclick="showTab('summary')">📊 Summary</button>
+  <button type="button" class="fb-tab"        id="tab-history"  onclick="showTab('history')">🕐 History</button>
+</div>
+
+<div class="main">
+
+  <!-- BANNER -->
+  <div id="sched-banner" class="sched-banner active">
+    <span id="sb-icon" style="font-size:20px;flex-shrink:0">📋</span>
+    <div style="flex:1">
+      <div id="sb-msg" style="font-size:13px;font-weight:700">Loading…</div>
+      <div id="sb-sub" style="font-size:11px;color:var(--muted);margin-top:1px"></div>
+    </div>
+    <div class="sb-chips">
+      <span class="sbc next" id="sbc-today">Today</span>
+    </div>
+  </div>
+
+  <!-- FORM PAGE -->
+  <div id="page-form">
+
+    <div class="form-card">
+      <div class="fc-head">
+        <div class="fc-dot"></div>
+        <div>
+          <div class="fc-title">🏠 SRR1 — Animal Inventory · တိရစ္ဆာန်စာရင်း</div>
+          <div class="fc-sub">Count animals by species and status</div>
+        </div>
+        <div class="fc-badge pending" id="inv-badge">⬜ Pending</div>
+      </div>
+      <div class="fc-body">
+
+        <div class="field">
+          <div class="flbl">Employee · ဝန်ထမ်း</div>
+          <input class="finput text" id="emp" placeholder="Your name…">
+        </div>
+
+        <div class="field">
+          <div class="flbl">Date · ရက်စွဲ</div>
+          <input class="finput text" id="inv-date" type="date">
+        </div>
+
+        <div class="sect-divider">📊 Status Legend · အဆင့်</div>
+        <div class="status-legend">
+          <span class="sl-chip sl-ok">✅ OK — Sellable · ရောင်းရန် ok</span>
+          <span class="sl-chip sl-sm">🔹 SMALL — Too small · အရမ်းသေးငယ်</span>
+          <span class="sl-chip sl-hc">♿ HC — Handicap · အသာပေး</span>
+          <span class="sl-chip sl-free">🆓 FREE — Give away · အခမဲ့</span>
+          <span class="sl-chip sl-tb">🩹 TB — Tail bite · အမြီးကိုက်</span>
+        </div>
+
+        <div class="sect-divider">🦎 Gecko Species Count · ကန်းကွက်တိရစ္ဆာန် အရေအတွက်</div>
+        <div style="overflow-x:auto">
+          <table class="species-table" id="species-table">
+            <thead>
+              <tr>
+                <th class="left" style="min-width:90px">Species</th>
+                <th style="background:#f0fdf4;color:var(--green-dk)">✅ OK</th>
+                <th style="background:#fffbeb;color:#856404">🔹 SMALL</th>
+                <th style="background:#f5f3ff;color:var(--purple)">♿ HC</th>
+                <th style="background:var(--fb-blue-lt);color:var(--fb-blue)">🆓 FREE</th>
+                <th style="background:var(--red-lt);color:#7f1d1d">🩹 TB</th>
+                <th style="background:#f8fafc">TOTAL</th>
+              </tr>
+            </thead>
+            <tbody id="species-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="sect-divider">📝 Notes · မှတ်ချက်</div>
+        <div class="field">
+          <textarea class="finput text" id="notes" rows="3" placeholder="Any notes about the animals… တိရစ္ဆာန်နှင့်ပတ်သက်သောမှတ်ချက်…" style="resize:vertical"></textarea>
+        </div>
+
+        <div class="sect-divider">📷 Photos · ဓာတ်ပုံများ</div>
+        <div class="field">
+          <div class="flbl">Add photos of animals<div class="flbl-my">တိရစ္ဆာန်များ ဓာတ်ပုံ</div></div>
+          <label class="photo-add-btn" for="inv-photos">
+            📷 Tap to add photos · ဓာတ်ပုံထည့်ရန်
+            <input type="file" id="inv-photos" accept="image/*" multiple capture="environment" style="display:none" onchange="handlePhotos(this)">
+          </label>
+          <div class="photo-grid" id="photo-grid"></div>
+          <div class="photo-count" id="photo-count"></div>
+        </div>
+
+        <button type="button" class="sub-btn" id="inv-submit" onclick="submitInventory()">☁️ Submit Inventory · တင်သွင်းပါ</button>
+      </div>
+    </div>
+
+    <!-- LIVE TOTALS CARD -->
+    <div class="summary-card">
+      <div class="summary-head">
+        <span style="font-size:16px">🔢</span>
+        <div class="summary-title">Live Totals · အချိန်နှင့်တပြေးညီ စုစုပေါင်း</div>
+        <div style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.75)" id="live-totals-date"></div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="ctbl" id="live-totals-table">
+          <thead>
+            <tr style="background:#f8f9fa">
+              <th class="left">Species</th>
+              <th style="color:var(--green-dk)">✅ OK</th>
+              <th style="color:#856404">🔹 SM</th>
+              <th style="color:var(--purple)">♿ HC</th>
+              <th style="color:var(--fb-blue)">🆓 FREE</th>
+              <th style="color:#7f1d1d">🩹 TB</th>
+              <th style="color:var(--green-dk)">TOTAL</th>
+            </tr>
+          </thead>
+          <tbody id="live-totals-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /page-form -->
+
+  <!-- SUMMARY PAGE -->
+  <div id="page-summary" style="display:none">
+    <div class="summary-card">
+      <div class="summary-head">
+        <span style="font-size:18px">📊</span>
+        <div class="summary-title">Latest Inventory Summary · နောက်ဆုံး စာရင်းအနှစ်ချုပ်</div>
+        <div style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.75)" id="summary-date"></div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="ctbl">
+          <thead>
+            <tr>
+              <th class="left">Species</th>
+              <th style="color:var(--green-dk)">✅ OK</th>
+              <th style="color:#856404">🔹 SM</th>
+              <th style="color:var(--purple)">♿ HC</th>
+              <th style="color:var(--fb-blue)">🆓 FREE</th>
+              <th style="color:#7f1d1d">🩹 TB</th>
+              <th style="color:var(--green-dk)">TOTAL</th>
+            </tr>
+          </thead>
+          <tbody id="summary-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Grand total chips -->
+    <div id="grand-total-chips" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
+  </div>
+
+  <!-- HISTORY PAGE -->
+  <div id="page-history" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div style="font-size:15px;font-weight:700">🕐 Inventory History · မှတ်တမ်း</div>
+      <button type="button" onclick="renderHistory()" style="font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-family:var(--font);color:var(--green-dk);font-weight:600">↻ Refresh</button>
+    </div>
+    <div id="history-list"></div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG ─────────────────────────────────────────────────────
+// Paste your Google Apps Script Web App URL here:
+var SHEET_URL = 'https://script.google.com/macros/s/AKfycbxsVklrcez5lc60xMoUcGOIFTLrE8dvToLm37dh5bFRL42PJ4MGJP5iwiUsboiSw2H2/exec';
+// To set up: Tools > Script editor in Google Sheets, deploy as web app, paste URL above
+
+// ── SPECIES DEFINITIONS ────────────────────────────────────────
+var SPECIES = [
+  {code:'IG',   full:'Iguana',                  icon:'🦎'},
+  {code:'DG',   full:'Day Gecko',               icon:'🦎'},
+  {code:'GD',   full:'Gold Dust Day Gecko',     icon:'✨'},
+  {code:'CG',   full:'Cave Gecko',              icon:'🕳️'},
+  {code:'LPG-N',full:'Leopard Gecko Normal',    icon:'🐆'},
+  {code:'LPG-ALB',full:'Leopard Gecko Albino',  icon:'⚪'},
+  {code:'LPG-BA',full:'Leopard Gecko Bells Albino', icon:'🔔'},
+  {code:'BWT',  full:'Black & White Tegu',          icon:'⬛'},
+  {code:'RT',   full:'Red Tegu',                    icon:'🔴'},
+  {code:'BTS',  full:'Blue-tongue Skink',       icon:'👅'},
+  {code:'BD',   full:'Bearded Dragon',          icon:'🐉'},
+];
+
+var STATUSES = [
+  {key:'ok',   label:'OK',   cls:'ok-inp',  color:'var(--green-dk)'},
+  {key:'sm',   label:'SM',   cls:'sm-inp',  color:'#856404'},
+  {key:'hc',   label:'HC',   cls:'hc-inp',  color:'var(--purple)'},
+  {key:'free', label:'FREE', cls:'free-inp',color:'var(--fb-blue)'},
+  {key:'tb',   label:'TB',   cls:'tb-inp',  color:'#7f1d1d'},
+];
+
+// ── DATA ───────────────────────────────────────────────────────
+function loadLocal(){ try{var d=localStorage.getItem('srr1_animals');return d?JSON.parse(d):{submissions:[]};}catch(e){return{submissions:[]};} }
+function saveLocal(){ localStorage.setItem('srr1_animals',JSON.stringify(DATA)); }
+var DATA = loadLocal();
+
+// ── HELPERS ────────────────────────────────────────────────────
+function pad(n){return String(n).padStart(2,'0');}
+function nowStr(){var d=new Date();return d.toISOString().slice(0,10)+' '+pad(d.getHours())+':'+pad(d.getMinutes());}
+function todayStr(){return new Date().toISOString().slice(0,10);}
+var DAY_NAMES=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+function alreadySubmitted(){
+  return DATA.submissions.some(function(s){return s.date===todayStr();});
+}
+
+// ── BUILD SPECIES TABLE ────────────────────────────────────────
+function buildSpeciesTable(){
+  var tbody = document.getElementById('species-tbody');
+  var html = '';
+  SPECIES.forEach(function(sp){
+    html += '<tr>';
+    html += '<td><div class="sp-name">'+sp.icon+' '+sp.code+'</div><div class="sp-full">'+sp.full+'</div></td>';
+    STATUSES.forEach(function(st){
+      var id = 'inp-'+sp.code+'-'+st.key;
+      html += '<td><input class="sp-inp '+st.cls+'" type="number" min="0" id="'+id+'" placeholder="0" oninput="updateRowTotal(\''+sp.code+'\')"></td>';
+    });
+    html += '<td class="sp-total" id="row-total-'+sp.code+'">0</td>';
+    html += '</tr>';
+  });
+  tbody.innerHTML = html;
+}
+
+function updateRowTotal(code){
+  var total = 0;
+  STATUSES.forEach(function(st){
+    var el = document.getElementById('inp-'+code+'-'+st.key);
+    total += parseInt(el&&el.value||0)||0;
+  });
+  var el = document.getElementById('row-total-'+code);
+  if(el){ el.textContent = total||''; el.style.color = total>0?'var(--green-dk)':'var(--muted)'; }
+  renderLiveTotals();
+}
+
+function getSpeciesData(){
+  var data = {};
+  SPECIES.forEach(function(sp){
+    data[sp.code] = {};
+    STATUSES.forEach(function(st){
+      var el = document.getElementById('inp-'+sp.code+'-'+st.key);
+      data[sp.code][st.key] = parseInt(el&&el.value||0)||0;
+    });
+  });
+  return data;
+}
+
+function renderLiveTotals(){
+  var d = getSpeciesData();
+  var tbody = document.getElementById('live-totals-tbody');
+  if(!tbody) return;
+  var html = '';
+  var grandTotals = {ok:0,sm:0,hc:0,free:0,tb:0,total:0};
+  SPECIES.forEach(function(sp){
+    var row = d[sp.code];
+    var rowTotal = STATUSES.reduce(function(s,st){return s+(row[st.key]||0);},0);
+    if(rowTotal===0) return;
+    grandTotals.ok   += row.ok||0;
+    grandTotals.sm   += row.sm||0;
+    grandTotals.hc   += row.hc||0;
+    grandTotals.free += row.free||0;
+    grandTotals.tb   += row.tb||0;
+    grandTotals.total+= rowTotal;
+    html += '<tr>'
+      +'<td class="left"><div class="sp-lbl">'+sp.icon+' '+sp.code+'</div><div class="sp-lbl-sub">'+sp.full+'</div></td>'
+      +'<td class="v-ok">'+(row.ok||'—')+'</td>'
+      +'<td class="v-sm">'+(row.sm||'—')+'</td>'
+      +'<td class="v-hc">'+(row.hc||'—')+'</td>'
+      +'<td class="v-free">'+(row.free||'—')+'</td>'
+      +'<td class="v-tb">'+(row.tb||'—')+'</td>'
+      +'<td class="v-total">'+rowTotal+'</td>'
+      +'</tr>';
+  });
+  if(!html) html='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:16px;font-size:12px">Enter counts above · အရေအတွက်ထည့်ပါ</td></tr>';
+  // Grand total row
+  if(grandTotals.total>0){
+    html += '<tr style="background:#f0fdf4;font-weight:800;border-top:2px solid var(--border)">'
+      +'<td class="left" style="font-weight:800;font-size:12px">🔢 GRAND TOTAL</td>'
+      +'<td style="color:var(--green-dk);font-weight:800">'+grandTotals.ok+'</td>'
+      +'<td style="color:#856404;font-weight:800">'+grandTotals.sm+'</td>'
+      +'<td style="color:var(--purple);font-weight:800">'+grandTotals.hc+'</td>'
+      +'<td style="color:var(--fb-blue);font-weight:800">'+grandTotals.free+'</td>'
+      +'<td style="color:#7f1d1d;font-weight:800">'+grandTotals.tb+'</td>'
+      +'<td style="color:var(--green-dk);font-weight:800;font-size:14px">'+grandTotals.total+'</td>'
+      +'</tr>';
+  }
+  tbody.innerHTML = html;
+  var dt = document.getElementById('live-totals-date');
+  if(dt) dt.textContent = 'Live — '+todayStr();
+}
+
+// ── CLOCK ──────────────────────────────────────────────────────
+function tick(){
+  var d=new Date();
+  document.getElementById('clock').textContent=pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+  updateBanner();
+}
+setInterval(tick,1000); tick();
+
+function updateBanner(){
+  var banner=document.getElementById('sched-banner');
+  var icon=document.getElementById('sb-icon');
+  var msg=document.getElementById('sb-msg');
+  var sub=document.getElementById('sb-sub');
+  var chip=document.getElementById('sbc-today');
+  if(!banner) return;
+  var done = alreadySubmitted();
+  if(done){
+    banner.className='sched-banner ok';
+    icon.textContent='✅';
+    msg.textContent='Inventory submitted today! · ယနေ့ တင်သွင်းပြီး';
+    sub.textContent='View in Summary or History tab · အနှစ်ချုပ် သို့မဟုတ် မှတ်တမ်း တက်ဘ်တွင် ကြည့်ပါ';
+    chip.className='sbc done';chip.textContent='✅ Done';
+  } else {
+    banner.className='sched-banner active';
+    icon.textContent='📋';
+    msg.textContent='Count and submit today\'s animal inventory · ယနေ့ တိရစ္ဆာန်စာရင်း ရေတွက်တင်သွင်းပါ';
+    sub.textContent='SRR1 တည်နေရာဟောင်း · Fill in all species counts';
+    chip.className='sbc now';chip.textContent='📋 Today';
+  }
+}
+
+// ── TABS ────────────────────────────────────────────────────────
+function showTab(t){
+  ['form','summary','history'].forEach(function(pg){
+    document.getElementById('page-'+pg).style.display=pg===t?'block':'none';
+    document.getElementById('tab-'+pg).classList.toggle('active',pg===t);
+  });
+  if(t==='summary') renderSummary();
+  if(t==='history') renderHistory();
+}
+
+// ── SUBMIT ──────────────────────────────────────────────────────
+function submitInventory(){
+  var emp=(document.getElementById('emp').value||'').trim();
+  if(!emp){showToast('Enter your name first · နာမည်ထည့်ပါ','err');return;}
+  var dateVal = document.getElementById('inv-date').value || todayStr();
+  var counts = getSpeciesData();
+  var notes = (document.getElementById('notes').value||'').trim();
+
+  var entry = {
+    date: dateVal,
+    ts: nowStr(),
+    day: DAY_NAMES[new Date().getDay()],
+    employee: emp,
+    notes: notes,
+    counts: counts,
+    photos: photoStore.slice()
+  };
+
+  DATA.submissions = DATA.submissions.filter(function(s){return s.date!==entry.date;});
+  DATA.submissions.push(entry);
+  saveLocal();
+  pushToSheet(entry);
+  photoStore = [];
+  renderPhotoGrid();
+  document.getElementById('photo-count').textContent='';
+  updateBadge();
+  updateBanner();
+  showToast('✅ Inventory submitted! · တင်သွင်းပြီး','ok');
+  localStorage.setItem('srr1_me',emp);
+}
+
+function updateBadge(){
+  var el = document.getElementById('inv-badge');
+  if(!el) return;
+  if(alreadySubmitted()){
+    el.className='fc-badge done';el.textContent='✅ Submitted';
+  } else {
+    el.className='fc-badge pending';el.textContent='⬜ Pending';
+  }
+}
+
+// ── SUMMARY ─────────────────────────────────────────────────────
+function renderSummary(){
+  var subs = DATA.submissions.sort(function(a,b){return b.date.localeCompare(a.date);});
+  var latest = subs[0];
+  var tbody = document.getElementById('summary-tbody');
+  var chips = document.getElementById('grand-total-chips');
+  var dateEl = document.getElementById('summary-date');
+
+  if(!latest){
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:32px"><div style="font-size:28px;margin-bottom:8px">📋</div>No inventory yet</td></tr>';
+    chips.innerHTML='';dateEl.textContent='';return;
+  }
+  dateEl.textContent=latest.date+' · '+latest.employee;
+
+  var html='';
+  var grand={ok:0,sm:0,hc:0,free:0,tb:0,total:0};
+  SPECIES.forEach(function(sp){
+    var row=(latest.counts&&latest.counts[sp.code])||{ok:0,sm:0,hc:0,free:0,tb:0};
+    var rowTotal=STATUSES.reduce(function(s,st){return s+(row[st.key]||0);},0);
+    grand.ok+=row.ok||0;grand.sm+=row.sm||0;grand.hc+=row.hc||0;grand.free+=row.free||0;grand.tb+=row.tb||0;grand.total+=rowTotal;
+    html+='<tr>'
+      +'<td class="left"><div class="sp-lbl">'+sp.icon+' '+sp.code+'</div><div class="sp-lbl-sub">'+sp.full+'</div></td>'
+      +'<td class="'+(row.ok>0?'v-ok':'v-na')+'">'+((row.ok>0)?row.ok:'—')+'</td>'
+      +'<td class="'+(row.sm>0?'v-sm':'v-na')+'">'+((row.sm>0)?row.sm:'—')+'</td>'
+      +'<td class="'+(row.hc>0?'v-hc':'v-na')+'">'+((row.hc>0)?row.hc:'—')+'</td>'
+      +'<td class="'+(row.free>0?'v-free':'v-na')+'">'+((row.free>0)?row.free:'—')+'</td>'
+      +'<td class="'+(row.tb>0?'v-tb':'v-na')+'">'+((row.tb>0)?row.tb:'—')+'</td>'
+      +'<td class="'+(rowTotal>0?'v-total':'v-na')+'">'+rowTotal+'</td>'
+      +'</tr>';
+  });
+  html+='<tr style="background:#f0fdf4;font-weight:800;border-top:2px solid var(--border)">'
+    +'<td class="left" style="font-weight:800">🔢 TOTAL</td>'
+    +'<td style="color:var(--green-dk);font-weight:800">'+grand.ok+'</td>'
+    +'<td style="color:#856404;font-weight:800">'+grand.sm+'</td>'
+    +'<td style="color:var(--purple);font-weight:800">'+grand.hc+'</td>'
+    +'<td style="color:var(--fb-blue);font-weight:800">'+grand.free+'</td>'
+    +'<td style="color:#7f1d1d;font-weight:800">'+grand.tb+'</td>'
+    +'<td style="color:var(--green-dk);font-weight:800;font-size:14px">'+grand.total+'</td>'
+    +'</tr>';
+  tbody.innerHTML=html;
+
+  // chips
+  var chipMap=[
+    {label:'✅ OK Sellable',val:grand.ok,bg:'var(--green-lt)',color:'var(--green-dk)',border:'var(--green)'},
+    {label:'🔹 Small',val:grand.sm,bg:'var(--amber-lt)',color:'#856404',border:'var(--amber)'},
+    {label:'♿ Handicap',val:grand.hc,bg:'var(--purple-lt)',color:'var(--purple)',border:'var(--purple)'},
+    {label:'🆓 Free',val:grand.free,bg:'var(--fb-blue-lt)',color:'var(--fb-blue)',border:'var(--fb-blue)'},
+    {label:'🩹 Tail Bite',val:grand.tb,bg:'var(--red-lt)',color:'#7f1d1d',border:'var(--red)'},
+    {label:'🔢 Grand Total',val:grand.total,bg:'var(--green-lt)',color:'var(--green-dk)',border:'var(--green)'},
+  ];
+  chips.innerHTML=chipMap.map(function(c){
+    return '<div style="background:'+c.bg+';border:1px solid '+c.border+';border-radius:var(--r);padding:10px 16px;display:flex;flex-direction:column;align-items:center;gap:2px">'
+      +'<div style="font-size:20px;font-weight:800;color:'+c.color+'">'+c.val+'</div>'
+      +'<div style="font-size:10px;font-weight:700;color:'+c.color+'">'+c.label+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+// ── HISTORY ─────────────────────────────────────────────────────
+function renderHistory(){
+  if(!DATA.submissions.length){
+    document.getElementById('history-list').innerHTML='<div style="text-align:center;color:var(--muted);padding:32px"><div style="font-size:28px;margin-bottom:8px">📋</div>No history yet · မှတ်တမ်းမရှိသေးပါ</div>';
+    return;
+  }
+  var subs=DATA.submissions.slice().sort(function(a,b){return b.date.localeCompare(a.date);});
+  var html='';
+  subs.forEach(function(entry){
+    var d=new Date(entry.date);
+    var dayName=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+    var fmtDate=d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();
+    html+='<div class="hist-entry">';
+    html+='<div style="background:var(--green-lt);border-bottom:1px solid var(--border);padding:9px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+      +'<span style="font-size:13px;font-weight:700;color:var(--green-dk)">📅 '+dayName+' '+fmtDate+'</span>'
+      +'<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:var(--green-lt);color:var(--green-dk);border:1px solid var(--green)">✅ '+entry.employee+'</span>'
+      +(entry.ts?'<span style="font-size:10px;color:var(--muted);margin-left:auto">'+entry.ts+'</span>':'')
+      +'</div>';
+
+    html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">'
+      +'<thead><tr style="background:#f8f9fa">'
+      +'<th style="padding:5px 10px;text-align:left;font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.04em;border-bottom:1px solid var(--border)">SPECIES</th>'
+      +'<th style="padding:5px 8px;text-align:center;font-size:9px;font-weight:700;color:var(--green-dk);border-bottom:1px solid var(--border)">OK</th>'
+      +'<th style="padding:5px 8px;text-align:center;font-size:9px;font-weight:700;color:#856404;border-bottom:1px solid var(--border)">SM</th>'
+      +'<th style="padding:5px 8px;text-align:center;font-size:9px;font-weight:700;color:var(--purple);border-bottom:1px solid var(--border)">HC</th>'
+      +'<th style="padding:5px 8px;text-align:center;font-size:9px;font-weight:700;color:var(--fb-blue);border-bottom:1px solid var(--border)">FREE</th>'
+      +'<th style="padding:5px 8px;text-align:center;font-size:9px;font-weight:700;color:#7f1d1d;border-bottom:1px solid var(--border)">TB</th>'
+      +'<th style="padding:5px 8px;text-align:center;font-size:9px;font-weight:700;color:var(--green-dk);border-bottom:1px solid var(--border)">TOTAL</th>'
+      +'</tr></thead><tbody>';
+
+    var hasData=false;
+    SPECIES.forEach(function(sp){
+      var row=(entry.counts&&entry.counts[sp.code])||{};
+      var rowTotal=STATUSES.reduce(function(s,st){return s+(row[st.key]||0);},0);
+      if(!rowTotal) return;
+      hasData=true;
+      html+='<tr style="border-bottom:1px solid var(--border)">'
+        +'<td style="padding:5px 10px;font-weight:600">'+sp.icon+' '+sp.code+' <span style="font-weight:400;color:var(--muted);font-size:10px">'+sp.full+'</span></td>'
+        +'<td style="padding:5px 8px;text-align:center;font-weight:700;color:var(--green-dk)">'+(row.ok||'—')+'</td>'
+        +'<td style="padding:5px 8px;text-align:center;font-weight:700;color:#856404">'+(row.sm||'—')+'</td>'
+        +'<td style="padding:5px 8px;text-align:center;font-weight:700;color:var(--purple)">'+(row.hc||'—')+'</td>'
+        +'<td style="padding:5px 8px;text-align:center;font-weight:700;color:var(--fb-blue)">'+(row.free||'—')+'</td>'
+        +'<td style="padding:5px 8px;text-align:center;font-weight:700;color:#7f1d1d">'+(row.tb||'—')+'</td>'
+        +'<td style="padding:5px 8px;text-align:center;font-weight:800;font-size:12px;color:var(--green-dk)">'+rowTotal+'</td>'
+        +'</tr>';
+    });
+    if(!hasData) html+='<tr><td colspan="7" style="padding:10px;text-align:center;color:var(--muted);font-size:11px">No counts recorded</td></tr>';
+    html+='</tbody></table></div>';
+
+    if(entry.notes){
+      html+='<div style="padding:8px 12px;border-top:1px solid var(--border);font-size:12px;color:var(--muted)">📝 '+entry.notes+'</div>';
+    }
+    if(entry.photos&&entry.photos.length){
+      html+='<div style="padding:8px 12px;border-top:1px solid var(--border);display:flex;gap:5px;flex-wrap:wrap;align-items:center">'
+        +'<span style="font-size:11px;color:var(--muted);font-weight:600">📷 '+entry.photos.length+' photo'+(entry.photos.length>1?'s':'')+':</span>'
+        +entry.photos.map(function(src){return '<img src="'+src+'" style="width:48px;height:48px;object-fit:cover;border-radius:5px;border:1px solid var(--border);cursor:pointer" onclick="viewPhoto(this.src)">';}).join('')
+        +'</div>';
+    }
+    html+='</div>';
+  });
+  document.getElementById('history-list').innerHTML=html;
+}
+
+// ── PHOTOS ──────────────────────────────────────────────────────
+var photoStore = [];
+
+function handlePhotos(input){
+  var files=Array.from(input.files);
+  if(!files.length) return;
+  var maxPhotos=10;
+  if(photoStore.length+files.length>maxPhotos){
+    showToast('Max '+maxPhotos+' photos','err');
+    files=files.slice(0,maxPhotos-photoStore.length);
+  }
+  var loaded=0;
+  files.forEach(function(file){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var img=new Image();
+      img.onload=function(){
+        var canvas=document.createElement('canvas');
+        var max=800;var ratio=Math.min(max/img.width,max/img.height,1);
+        canvas.width=Math.round(img.width*ratio);canvas.height=Math.round(img.height*ratio);
+        canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+        photoStore.push(canvas.toDataURL('image/jpeg',0.75));
+        loaded++;if(loaded===files.length)renderPhotoGrid();
+      };img.src=e.target.result;
+    };reader.readAsDataURL(file);
+  });
+  input.value='';
+}
+
+function renderPhotoGrid(){
+  var grid=document.getElementById('photo-grid');if(!grid)return;
+  var html='';
+  photoStore.forEach(function(src,i){
+    html+='<div class="photo-thumb"><img src="'+src+'" alt="photo '+(i+1)+'">'
+      +'<button type="button" class="photo-del" onclick="removePhoto('+i+')" title="Remove">✕</button></div>';
+  });
+  grid.innerHTML=html;
+  var countEl=document.getElementById('photo-count');
+  if(countEl) countEl.textContent=photoStore.length>0?photoStore.length+' photo'+(photoStore.length>1?'s':'')+' added':'';
+}
+
+function removePhoto(idx){photoStore.splice(idx,1);renderPhotoGrid();}
+
+function viewPhoto(src){
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out';
+  ov.innerHTML='<img src="'+src+'" style="max-width:95vw;max-height:90vh;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.6)">'
+    +'<button style="position:absolute;top:16px;right:20px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:50%;width:36px;height:36px;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center" onclick="this.parentNode.remove()">✕</button>';
+  ov.onclick=function(e){if(e.target===ov)ov.remove();};
+  document.body.appendChild(ov);
+}
+
+// ── SHEET SYNC ──────────────────────────────────────────────────
+var POLL_MS=20000;var pollTimer=null;var lastMod='';
+
+function setPill(l,bg,col){var el=document.getElementById('sync-pill');if(!el)return;el.textContent=l;el.style.background=bg;el.style.color=col;el.style.border='1px solid '+col+'55';}
+function pillOk()    {setPill('⬤ Live','rgba(66,183,42,.25)','#fff');}
+function pillSaving(){setPill('⬤ Saving…','rgba(247,185,40,.25)','#fff');}
+function pillOff()   {setPill('⬤ Offline','rgba(255,255,255,.1)','rgba(255,255,255,.5)');}
+function pillLoad()  {setPill('⬤ Loading…','rgba(255,255,255,.15)','rgba(255,255,255,.8)');}
+
+function loadFromSheet(){
+  if(!SHEET_URL){pillOff();return;}
+  pillLoad();
+  fetch(SHEET_URL+'?action=get_all&t='+Date.now())
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.status==='ok'&&d.submissions&&d.submissions.length){
+        d.submissions.forEach(function(remote){
+          var exists=DATA.submissions.find(function(s){return s.date===remote.date;});
+          if(!exists) DATA.submissions.push(remote);
+        });
+        saveLocal();lastMod=d.lastModified||'';
+        updateBadge();updateBanner();
+      }
+      pillOk();
+    }).catch(function(){pillOff();});
+}
+
+function startPolling(){
+  if(pollTimer) clearInterval(pollTimer);
+  pollTimer=setInterval(function(){
+    if(!SHEET_URL) return;
+    fetch(SHEET_URL+'?action=get_today&t='+Date.now())
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(d.status==='ok'&&d.lastModified&&d.lastModified!==lastMod){
+          lastMod=d.lastModified;
+          if(d.submissions){
+            var changed=false;
+            d.submissions.forEach(function(remote){
+              var exists=DATA.submissions.find(function(s){return s.date===remote.date;});
+              if(!exists){DATA.submissions.push(remote);changed=true;}
+            });
+            if(changed){saveLocal();updateBadge();updateBanner();showToast('🔄 New submission · ဒေတာအသစ်ရောက်ပြီ','info');}
+          }
+          pillOk();
+        } else {pillOk();}
+      }).catch(function(){pillOff();});
+  },POLL_MS);
+}
+
+function pushToSheet(entry){
+  if(!SHEET_URL){pillOff();return;}
+  pillSaving();
+  var slim=Object.assign({},entry,{
+    photos:entry.photos?(entry.photos.length+' photos'):0,
+    counts:JSON.stringify(entry.counts)
+  });
+  fetch(SHEET_URL,{method:'POST',body:JSON.stringify({action:'save',entry:slim})})
+    .then(function(r){return r.json();})
+    .then(function(d){lastMod=d.lastModified||lastMod;pillOk();
+      if(entry.photos&&entry.photos.length){
+        fetch(SHEET_URL,{method:'POST',body:JSON.stringify({action:'save_photos',date:entry.date,photos:entry.photos})}).catch(function(){});
+      }
+    }).catch(function(){pillOff();showToast('⚠️ Saved locally — check connection','err');});
+}
+
+function syncNow(){
+  if(!SHEET_URL){showToast('No Sheet URL set — paste it in SHEET_URL variable','err');return;}
+  pillSaving();
+  var slim=DATA.submissions.map(function(e){return Object.assign({},e,{photos:e.photos?(e.photos.length+' photos'):0,counts:JSON.stringify(e.counts)});});
+  fetch(SHEET_URL,{method:'POST',body:JSON.stringify({action:'sync_all',submissions:slim})})
+    .then(function(r){return r.json();})
+    .then(function(){pillOk();showToast('✅ All synced to Sheet!','ok');})
+    .catch(function(){pillOff();showToast('Sync failed','err');});
+}
+
+// ── TOAST ────────────────────────────────────────────────────────
+function showToast(m,type){var t=document.getElementById('toast');t.textContent=m;t.className='toast '+(type||'info')+' show';setTimeout(function(){t.classList.remove('show');},2600);}
+
+// ── INIT ─────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',function(){
+  buildSpeciesTable();
+  // Set today's date
+  document.getElementById('inv-date').value=todayStr();
+  // Restore employee name
+  var saved=localStorage.getItem('srr1_me')||'';
+  if(saved){var el=document.getElementById('emp');if(el)el.value=saved;}
+  updateBadge();
+  if(SHEET_URL){loadFromSheet();startPolling();} else {pillOff();}
+});
+</script>
+</body>
+</html>
